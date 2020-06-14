@@ -1,0 +1,40 @@
+---
+- name: Install OpenVPN
+  package:
+    name: openvpn
+    state: present
+
+- name: Generate server.conf from sample config
+  shell: gzip -d -c /usr/share/doc/openvpn/examples/sample-config-files/server.conf.gz > server.conf
+  args:
+    chdir: /etc/openvpn
+    creates: server.conf
+
+- name: Update OpenVPN server configuration
+  lineinfile:
+    path: /etc/openvpn/server.conf
+    regexp: "^{{ item.regex }}$"
+    line: "{{ item.value }}"
+    backrefs: "{{ item.backrefs | default('no') }}"
+    firstmatch: "{{ item.firstmatch | default('no') }}"
+    insertafter: "{{ item.after | default('') }}"
+  with_items:
+    # DH has been named as just `dh.pem` in recent version of EasyRSA
+    - { regex: 'dh dh[0-9]+\.pem', value: 'dh dh.pem' }
+    - { regex: ';(push "redirect-gateway def1 bypass-dhcp")', value: '\1', backrefs: 'yes' }
+    # Using Cloudflare's DNS over the OpenDNS. Put the primary first before the secondary DNS.
+    - { regex: ';push "dhcp-option DNS .+"', value: 'push "dhcp-option DNS 1.1.1.1"', firstmatch: 'yes' }
+    - { regex: ';push "dhcp-option DNS .+"', value: 'push "dhcp-option DNS 1.1.0.0"' }
+    - { regex: ';(user nobody)', value: '\1', backrefs: 'yes' }
+    # Older versions of OpenVPN has `nobody` for groups. Use `nogroup` instead.
+    - { regex: ';(group) no.+', value: '\1 nogroup', backrefs: 'yes' }
+    - { regex: ';(log-append .+)', value: '\1', backrefs: 'yes' }
+    - { regex: ';(cipher AES-256-CBC)', value: '\1', backrefs: 'yes' }
+    # If string 'auth SHA256' is not present in the file, insert it after line with 'cipher AES*'.
+    - { regex: 'auth SHA256', value: 'auth SHA256', after: '^cipher AES-256.+' }
+
+- name: Generate TLS-Auth key
+  shell: openvpn --genkey --secret ta.key
+  args:
+    chdir: /etc/openvpn
+    creates: ta.key

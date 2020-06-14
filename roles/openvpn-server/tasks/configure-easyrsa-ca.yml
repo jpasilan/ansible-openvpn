@@ -1,0 +1,109 @@
+---
+# Install expect on remote instead of delegating to localhost via delegate_to.
+- name: Install expect package
+  package:
+    name: expect
+    state: present
+
+- name: Download EasyRSA 3.0.7 archive
+  get_url:
+    url: https://github.com/OpenVPN/easy-rsa/releases/download/v3.0.7/EasyRSA-3.0.7.tgz
+    dest: /tmp/EasyRSA-3.0.7.tgz
+
+- name: Extract EasyRSA archive
+  unarchive:
+    remote_src: yes
+    src: /tmp/EasyRSA-3.0.7.tgz
+    dest: "{{ ansible_env.HOME }}"
+    owner: "{{ ansible_env.USER }}"
+    group: "{{ ansible_env.USER }}"
+
+- name: Rename EasyRSA-3.0.7 directory to easyrsa-ca
+  command: mv "{{ ansible_env.HOME }}/EasyRSA-3.0.7" "{{ ansible_env.HOME }}/easyrsa-ca"
+  args:
+    creates: "{{ ansible_env.HOME }}/easyrsa-ca"
+
+- name: Copy vars.example base configuration
+  command: cp "{{ ansible_env.HOME }}/easyrsa-ca/vars.example" "{{ ansible_env.HOME }}/easyrsa-ca/vars"
+  args:
+    creates: "{{ ansible_env.HOME }}/easyrsa-ca/vars"
+
+- name: Update CA vars configuration
+  lineinfile:
+    path: "{{ ansible_env.HOME }}/easyrsa-ca/vars"
+    regexp: "^#{{ item.property | regex_escape() }}"
+    line: "{{ item.property }} {{ item.value }}"
+  with_items:
+    - { property: 'set_var EASYRSA_REQ_COUNTRY', value: '"{{ EASYRSA_REQ_COUNTRY }}"' }
+    - { property: 'set_var EASYRSA_REQ_PROVINCE', value: '"{{ EASYRSA_REQ_PROVINCE }}"' }
+    - { property: 'set_var EASYRSA_REQ_CITY', value: '"{{ EASYRSA_REQ_CITY }}"' }
+    - { property: 'set_var EASYRSA_REQ_ORG', value: '"{{ EASYRSA_REQ_ORG }}"' }
+    - { property: 'set_var EASYRSA_REQ_EMAIL', value: '"{{ EASYRSA_REQ_EMAIL }}"' }
+    - { property: 'set_var EASYRSA_REQ_OU', value: '"{{ EASYRSA_REQ_OU }}"' }
+
+- name: Initialize certificate authority
+  shell: ./easyrsa init-pki
+  args:
+    chdir: "{{ ansible_env.HOME }}/easyrsa-ca"
+    creates: pki
+
+- name: Build certificate authority
+  shell: |
+    set timeout 120
+    spawn ./easyrsa build-ca nopass
+
+    expect -ex {Common Name (eg: your user, host, or server name) [Easy-RSA CA]:}
+    send "\r"
+
+    interact
+  args:
+    chdir: "{{ ansible_env.HOME }}/easyrsa-ca"
+    executable: /usr/bin/expect
+    creates: pki/ca.crt
+
+- name: Generate server request
+  shell: |
+    set timeout 120
+    spawn ./easyrsa gen-req server nopass
+
+    expect -ex {Common Name (eg: your user, host, or server name) [server]:}
+    send "\r"
+
+    interact
+  args:
+    chdir: "{{ ansible_env.HOME }}/easyrsa-ca"
+    executable: /usr/bin/expect
+    creates: pki/reqs/server.req
+
+- name: Sign server request
+  shell: |
+    set timeout 120
+    spawn ./easyrsa sign-req server server
+
+    expect -ex {Confirm request details:}
+    send "yes\r"
+
+    interact
+  args:
+    chdir: "{{ ansible_env.HOME }}/easyrsa-ca"
+    executable: /usr/bin/expect
+    creates: pki/issued/server.crt
+
+- name: Build Diffie-Hellman parameters
+  shell: ./easyrsa gen-dh
+  args:
+    chdir: "{{ ansible_env.HOME }}/easyrsa-ca"
+    creates: pki/dh.pem
+
+- name: Copy key and certificates to /etc/openvpn
+  copy:
+    remote_src: yes
+    src: "{{ ansible_env.HOME }}/easyrsa-ca/pki/{{ item }}"
+    dest: /etc/openvpn
+    force: no
+  with_items:
+    - "ca.crt"
+    - "dh.pem"
+    - "issued/server.crt"
+    - "private/server.key"
+    # ta.key generated in a prior task and already saved in /etc/openvpn

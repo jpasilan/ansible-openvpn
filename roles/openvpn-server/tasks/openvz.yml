@@ -1,0 +1,13 @@
+---
+- name: Register openvpn@.service systemd file for exists check
+  stat:
+    path: /lib/systemd/system/openvpn@.service
+  register: systemd_openvpn_service
+
+- name: Comment LimitNPROC in openvpn@.service systemd file
+  replace:
+    path: /lib/systemd/system/openvpn@.service
+    regexp: '^(LimitNPROC=.+)$'
+    replace: '#\1'
+  when: systemd_openvpn_service.stat.exists
+

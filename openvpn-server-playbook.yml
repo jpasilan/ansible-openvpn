@@ -1,0 +1,6 @@
+---
+- hosts: openvpn
+  vars_files:
+    - ../secret_vars.yml
+  roles:
+    - openvpn-server

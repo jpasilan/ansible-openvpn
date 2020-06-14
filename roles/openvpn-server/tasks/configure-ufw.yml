@@ -1,0 +1,61 @@
+---
+- name: Install ufw
+  package:
+    name: ufw
+    state: present
+
+- name: Allow incoming SSH and OpenVPN traffic
+  ufw:
+    rule: allow
+    port: "{{ item.port }}"
+    proto: "{{ item.proto }}"
+  with_items:
+    - { port: 'ssh', proto: 'tcp' }
+    - { port: 'openvpn', proto: 'udp' }
+
+- name: Add SNAT rules to ufw/before.rules for OpenVZ
+  blockinfile:
+    path: /etc/ufw/before.rules
+    insertbefore: BOF
+    content: |
+      # START OPENVPN RULES
+      # NAT table rules
+      *nat
+      :POSTROUTING ACCEPT [0:0]
+      -A POSTROUTING -s 10.8.0.0/8 -j SNAT --to-source {{ ansible_default_ipv4.address }}
+      COMMIT
+      # END OPENVPN RULES
+  when: ansible_virtualization_type == 'openvz'
+
+- name: Add MASQUERADE NAT rules to ufw/before.rules for non-OpenVZ
+  blockinfile:
+    path: /etc/ufw/before.rules
+    insertbefore: BOF
+    content: |
+      # START OPENVPN RULES
+      # NAT table rules
+      *nat
+      :POSTROUTING ACCEPT [0:0]
+      # Verify the correct interface by running `ip route | grep default`
+      -A POSTROUTING -s 10.8.0.0/8 -o {{ ansible_default_ipv4.interface }} -j MASQUERADE
+      COMMIT
+      # END OPENVPN RULES
+  when: ansible_virtualization_type != 'openvz'
+
+- name: Update ufw forwarding policy
+  lineinfile:
+    path: /etc/default/ufw
+    line: 'DEFAULT_FORWARD_POLICY="ACCEPT"'
+    regexp: '^DEFAULT_FORWARD_POLICY="DROP"'
+
+- name: Enable IPv4 forwarding
+  sysctl:
+    name: net.ipv4.ip_forward
+    value: '1'
+    sysctl_set: yes
+    state: present
+    reload: yes
+
+- name: Reload ufw
+  ufw:
+    state: reloaded

@@ -1,0 +1,27 @@
+---
+- import_tasks: openvpn-2.4-xenial-apt-repo.yml
+  when: ansible_distribution == 'Ubuntu' and ansible_distribution_release == 'xenial'
+
+- name: Update apt packages
+  apt:
+    update-cache: yes
+    upgrade: 'yes'
+    cache_valid_time: 14400 # Valid for 4 hours.
+  when: ansible_os_family == "Debian"
+
+- import_tasks: install-and-configure-server.yml
+
+- import_tasks: openvz.yml
+  when: ansible_virtualization_type == 'openvz'
+
+- import_tasks: configure-easyrsa-ca.yml
+
+- import_tasks: configure-ufw.yml
+
+- name: Start OpenVPN service
+  systemd:
+    name: openvpn@server
+    daemon_reload: yes
+    state: started
+    enabled: yes
+
