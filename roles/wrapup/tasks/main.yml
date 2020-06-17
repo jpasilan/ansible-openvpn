@@ -1,0 +1,32 @@
+---
+- name: Copy key and certificates to /etc/openvpn
+  copy:
+    remote_src: yes
+    src: "{{ ansible_env.HOME }}/easyrsa-ca/pki/{{ item }}"
+    dest: /etc/openvpn
+    force: no
+  with_items:
+    - "ca.crt"
+    - "dh.pem"
+    - "issued/server.crt"
+    - "private/server.key"
+    # ta.key generated in a prior task and already saved in /etc/openvpn
+
+- name: Start OpenVPN service
+  systemd:
+    name: openvpn@server
+    daemon_reload: yes
+    state: started
+    enabled: yes
+
+- name: Enable IPv4 forwarding
+  sysctl:
+    name: net.ipv4.ip_forward
+    value: '1'
+    sysctl_set: yes
+    state: present
+    reload: yes
+
+- name: Reload ufw
+  ufw:
+    state: reloaded

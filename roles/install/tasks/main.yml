@@ -1,0 +1,21 @@
+---
+- name: Install ufw
+  package:
+    name: ufw
+    state: present
+
+- name: Install OpenVPN
+  package:
+    name: openvpn
+    state: present
+
+# Install expect on remote instead of delegating to localhost via delegate_to.
+- name: Install expect package
+  package:
+    name: expect
+    state: present
+
+- name: Download EasyRSA 3.0.7 archive
+  get_url:
+    url: https://github.com/OpenVPN/easy-rsa/releases/download/v3.0.7/EasyRSA-3.0.7.tgz
+    dest: /tmp/EasyRSA-3.0.7.tgz

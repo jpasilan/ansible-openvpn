@@ -1,9 +1,4 @@
 ---
-- name: Install OpenVPN
-  package:
-    name: openvpn
-    state: present
-
 - name: Generate server.conf from sample config
   shell: gzip -d -c /usr/share/doc/openvpn/examples/sample-config-files/server.conf.gz > server.conf
   args:

@@ -1,15 +1,4 @@
 ---
-# Install expect on remote instead of delegating to localhost via delegate_to.
-- name: Install expect package
-  package:
-    name: expect
-    state: present
-
-- name: Download EasyRSA 3.0.7 archive
-  get_url:
-    url: https://github.com/OpenVPN/easy-rsa/releases/download/v3.0.7/EasyRSA-3.0.7.tgz
-    dest: /tmp/EasyRSA-3.0.7.tgz
-
 - name: Extract EasyRSA archive
   unarchive:
     remote_src: yes
@@ -94,16 +83,3 @@
   args:
     chdir: "{{ ansible_env.HOME }}/easyrsa-ca"
     creates: pki/dh.pem
-
-- name: Copy key and certificates to /etc/openvpn
-  copy:
-    remote_src: yes
-    src: "{{ ansible_env.HOME }}/easyrsa-ca/pki/{{ item }}"
-    dest: /etc/openvpn
-    force: no
-  with_items:
-    - "ca.crt"
-    - "dh.pem"
-    - "issued/server.crt"
-    - "private/server.key"
-    # ta.key generated in a prior task and already saved in /etc/openvpn

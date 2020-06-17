@@ -1,9 +1,4 @@
 ---
-- name: Install ufw
-  package:
-    name: ufw
-    state: present
-
 - name: Allow incoming SSH and OpenVPN traffic
   ufw:
     rule: allow
@@ -47,15 +42,3 @@
     path: /etc/default/ufw
     line: 'DEFAULT_FORWARD_POLICY="ACCEPT"'
     regexp: '^DEFAULT_FORWARD_POLICY="DROP"'
-
-- name: Enable IPv4 forwarding
-  sysctl:
-    name: net.ipv4.ip_forward
-    value: '1'
-    sysctl_set: yes
-    state: present
-    reload: yes
-
-- name: Reload ufw
-  ufw:
-    state: reloaded

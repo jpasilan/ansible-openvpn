@@ -1,0 +1,9 @@
+---
+- import_tasks: openvpn.yml
+
+- import_tasks: openvz.yml
+  when: ansible_virtualization_type == 'openvz'
+
+- import_tasks: easyrsa.yml
+
+- import_tasks: ufw.yml
