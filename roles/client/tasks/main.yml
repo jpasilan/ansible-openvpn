@@ -1,0 +1,96 @@
+---
+- name: Create clients directory
+  file:
+    path: "{{ ansible_env.HOME }}/clients"
+    state: directory
+    mode: '0750'
+
+- name: Copy OpenVPN client configuration
+  command: cp /usr/share/doc/openvpn/examples/sample-config-files/client.conf "{{ ansible_env.HOME }}/clients/base.conf"
+  args:
+    creates: "{{ ansible_env.HOME }}/clients/base.conf"
+
+- name: Update OpenVPN client configuration
+  lineinfile:
+    path: "{{ ansible_env.HOME }}/clients/base.conf"
+    regexp: "^{{ item.regex }}$"
+    line: "{{ item.value }}"
+    backrefs: "{{ item.backrefs | default('no') }}"
+    insertafter: "{{ item.after | default('') }}"
+  with_items:
+    - { regex: 'remote .+ 1194', value: 'remote {{ groups["openvpn"][0] }} 1194' }
+    - { regex: ';(user nobody)', value: '\1', backrefs: 'yes' }
+    # Older versions of OpenVPN has `nobody` for groups. Use `nogroup` instead.
+    - { regex: ';(group) no.+', value: '\1 nogroup', backrefs: 'yes' }
+    # If string 'auth SHA256' is not present in the file, insert it after line with 'cipher AES*'.
+    - { regex: 'auth SHA256', value: 'auth SHA256', after: '^cipher AES-256.+' }
+    - { regex: '(ca .+)', value: ';\1', backrefs: 'yes' }
+    - { regex: '(cert .+)', value: ';\1', backrefs: 'yes' }
+    - { regex: '(key .+)', value: ';\1', backrefs: 'yes' }
+    - { regex: '(tls-auth .+)', value: ';\1', backrefs: 'yes' }
+    - { regex: 'key-direction 1', value: 'key-direction 1', after: 'EOF' }
+
+# Note: An `exp_continue` is used as the pattern doesn't always happen.
+- name: Generate client request
+  shell: |
+    set timeout 60
+    spawn ./easyrsa gen-req {{ cert_client }} nopass
+
+    expect {
+      -ex {Confirm key overwrite:} {
+          send "yes\r"
+          exp_continue
+      }
+      -ex {Common Name (eg: your user, host, or server name) [{{ cert_client }}]:} {
+          send "\r"
+          interact
+      }
+    }
+
+    exit 0
+  args:
+    chdir: "{{ ansible_env.HOME }}/easyrsa-ca"
+    executable: /usr/bin/expect
+    creates: "pki/reqs/{{ cert_client }}.req"
+
+- name: Sign client request
+  shell: |
+    set timeout 60
+    spawn ./easyrsa sign-req client {{ cert_client }}
+
+    expect {
+      -ex {Confirm request details:} {
+          send "yes\r"
+          interact
+      }
+    }
+
+    exit 0
+  args:
+    chdir: "{{ ansible_env.HOME }}/easyrsa-ca"
+    executable: /usr/bin/expect
+    creates: "pki/issued/{{ cert_client }}.crt"
+
+- name: Generate client ovpn file
+  shell: >
+    cat "{{ ansible_env.HOME}}/clients/base.conf"
+    <(echo -e '\n<ca>')
+    pki/ca.crt
+    <(echo -e '</ca>\n<cert>')
+    "pki/issued/{{ cert_client }}.crt"
+    <(echo -e '</cert>\n<key>')
+    "pki/private/{{ cert_client }}.key"
+    <(echo -e '</key>\n<tls-auth>')
+    /etc/openvpn/ta.key
+    <(echo -e '</tls-auth>')
+    > "{{ ansible_env.HOME }}/clients/{{ cert_client }}.ovpn"
+  args:
+    chdir: "{{ ansible_env.HOME }}/easyrsa-ca"
+    executable: /bin/bash
+    creates: "{{ ansible_env.HOME }}/clients/{{ cert_client }}.ovpn"
+
+- name: Download client configuration to local
+  fetch:
+    src: "{{ ansible_env.HOME }}/clients/{{ cert_client }}.ovpn"
+    dest: "{{ local_client_path }}/"
+    flat: yes

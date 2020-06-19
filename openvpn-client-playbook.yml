@@ -1,0 +1,5 @@
+---
+- name: Generate OpenVPN client certificate
+  hosts: openvpn
+  roles:
+    - client

@@ -1,0 +1,3 @@
+---
+cert_client: 'client'
+local_client_path: ../clients
