@@ -1,0 +1,19 @@
+---
+- name: Ensure apt_key dependencies are installed.
+  apt:
+    name:
+      - apt-transport-https
+      - ca-certificates
+      - gnupg2
+    state: present
+
+- name: Add OpenVPN public GPG key to apt
+  apt_key:
+    url: https://swupdate.openvpn.net/repos/repo-public.gpg
+    state: present
+
+- name: Create sources.list fragment for the latest stable OpenVPN package
+  copy:
+    dest: /etc/apt/sources.list.d/openvpn-aptrepo.list
+    content: |
+      deb http://build.openvpn.net/debian/openvpn/stable {{ ansible_distribution_release }} main

@@ -8,9 +8,12 @@
     group: "{{ ansible_env.USER }}"
 
 - name: Rename EasyRSA-3.0.7 directory to easyrsa-ca
-  command: mv "{{ ansible_env.HOME }}/EasyRSA-3.0.7" "{{ ansible_env.HOME }}/easyrsa-ca"
+  shell: |
+    mv "EasyRSA-3.0.7" "easyrsa-ca"
+    chmod 0700 "easyrsa-ca"
   args:
-    creates: "{{ ansible_env.HOME }}/easyrsa-ca"
+    chdir: "{{ ansible_env.HOME }}"
+    creates: "easyrsa-ca"
 
 - name: Copy vars.example base configuration
   command: cp "{{ ansible_env.HOME }}/easyrsa-ca/vars.example" "{{ ansible_env.HOME }}/easyrsa-ca/vars"

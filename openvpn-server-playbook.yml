@@ -6,7 +6,7 @@
       group_by:
         key: OS_{{ ansible_os_family }}
 
-- name: Run Debian-related package updates
+- name: Run Debian package updates
   hosts: OS_Debian
   gather_facts: False
   roles:

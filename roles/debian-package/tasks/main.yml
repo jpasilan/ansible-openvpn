@@ -1,8 +1,7 @@
 ---
-- import_tasks: openvpn-2.4-xenial-apt-repo.yml
-  when: ansible_distribution == 'Ubuntu' and ansible_distribution_release == 'xenial'
+- import_tasks: openvpn-stable-apt-repo.yml
 
-- name: Update apt packages
+- name: Run apt update and upgrade
   apt:
     update-cache: yes
     upgrade: 'yes'
