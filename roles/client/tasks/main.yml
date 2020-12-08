@@ -73,7 +73,7 @@
 
 - name: Generate client ovpn file
   shell: >
-    cat "{{ ansible_env.HOME}}/clients/base.conf"
+    cat "{{ ansible_env.HOME }}/clients/base.conf"
     <(echo -e '\n<ca>')
     pki/ca.crt
     <(echo -e '</ca>\n<cert>')

@@ -14,35 +14,12 @@ This was tested in the following distros:
 * Debian 10.3, 9.12
 * Ubuntu 20.04, 19.10, 18.04, and 16.04
 
-Configuration for OpenVZ VPSes is handled as well.
+Configuration for OpenVZ VPSes is handled as well. Be warned though that it is not recommended to run a VPN on an OpenVZ VPS.
 
 # Setup
 
-Prior to running the playbooks, create the inventory named `hosts.yml` and the vars file, `secret_vars.yml`, in the checkout's parent directory.
+Prior to running the playbooks, create the inventory named `hosts.yml` and the vars file, `secret_vars.yml`. Sample files are provided for reference.
 Also, create the `clients` directory in the parent directory. This is where the client config files will be downloaded.
-
-```
-hosts.yml
-
-all:
-    hosts:
-    children:
-        openvpn:
-            hosts:
-                [IP address|FQDN]
-```
-
-```
-secret_vars.yml
-
----
-EASYRSA_REQ_COUNTRY: "US"
-EASYRSA_REQ_PROVINCE: "California"
-EASYRSA_REQ_CITY: "San Francisco"
-EASYRSA_REQ_ORG: "Copyleft Certificate Co"
-EASYRSA_REQ_EMAIL: "me@example.net"
-EASYRSA_REQ_OU: "My Organizational Unit"
-```
 
 # Usage
 

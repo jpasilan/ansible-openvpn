@@ -29,7 +29,7 @@
     - { regex: 'auth SHA256', value: 'auth SHA256', after: '^cipher AES-256.+' }
 
 - name: Generate TLS-Auth key
-  shell: openvpn --genkey --secret ta.key
+  command: openvpn --genkey --secret ta.key
   args:
     chdir: /etc/openvpn
     creates: ta.key

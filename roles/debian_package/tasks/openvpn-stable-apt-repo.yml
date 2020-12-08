@@ -14,6 +14,7 @@
 
 - name: Create sources.list fragment for the latest stable OpenVPN package
   copy:
+    mode: 0644
     dest: /etc/apt/sources.list.d/openvpn-aptrepo.list
     content: |
       deb http://build.openvpn.net/debian/openvpn/stable {{ ansible_distribution_release }} main

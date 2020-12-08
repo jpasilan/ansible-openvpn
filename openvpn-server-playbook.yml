@@ -10,13 +10,13 @@
   hosts: OS_Debian
   gather_facts: False
   roles:
-    - debian-package
+    - debian_package
 
 - name: Install OpenVPN and dependencies
   hosts: openvpn
   gather_facts: False
   vars_files:
-    - ../secret_vars.yml
+    - secret_vars.yml
   roles:
     - install
     - configure

@@ -34,7 +34,7 @@
     - { property: 'set_var EASYRSA_REQ_OU', value: '"{{ EASYRSA_REQ_OU }}"' }
 
 - name: Initialize certificate authority
-  shell: ./easyrsa init-pki
+  command: ./easyrsa init-pki
   args:
     chdir: "{{ ansible_env.HOME }}/easyrsa-ca"
     creates: pki
@@ -82,7 +82,7 @@
     creates: pki/issued/server.crt
 
 - name: Build Diffie-Hellman parameters
-  shell: ./easyrsa gen-dh
+  command: ./easyrsa gen-dh
   args:
     chdir: "{{ ansible_env.HOME }}/easyrsa-ca"
     creates: pki/dh.pem
