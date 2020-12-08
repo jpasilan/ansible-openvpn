@@ -1,5 +1,7 @@
 # ansible-openvpn
 
+![Ansible Lint](https://github.com/jpasilan/ansible-openvpn/workflows/Ansible%20Lint/badge.svg)
+
 Ansible playbook to install and configure an OpenVPN server on a VPS. This will do the following:
 * Build a CA using EasyRSA.
 * Generates the certificates and keys needed by the OpenVPN server.
